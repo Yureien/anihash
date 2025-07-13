@@ -83,8 +83,6 @@ anidb:
   address: api.anidb.net:9000
   user: "your-anidb-username"
   password: "your-anidb-password"
-  client_name: "myapp"
-  client_version: 1
 
 server:
   host: 0.0.0.0
@@ -105,8 +103,6 @@ scanner:
 -   `anidb`:
     -   `user`: Your AniDB API username.
     -   `password`: Your AniDB API password.
-    -   `client_name`: The client name to identify with AniDB.
-    -   `client_version`: The client version to identify with AniDB.
     -   `address`: The AniDB UDP API address.
 -   `server`:
     -   `host`: The host address for the server to listen on.

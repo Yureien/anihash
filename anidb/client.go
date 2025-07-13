@@ -13,7 +13,11 @@ import (
 	"strings"
 )
 
-const protoVer = "3"
+const (
+	clientName    = "goaniudp"
+	clientVersion = 1
+	protoVer      = "3"
+)
 
 // A Client is an AniDB UDP API client.
 //
@@ -40,7 +44,7 @@ type Client struct {
 // The client will be authenticated with the given configuration.
 // The client will be connected to the given address.
 func NewAuthenticatedClient(l *slog.Logger, cfg *AniDBConfig) (*Client, func() error, error) {
-	client, err := Dial(cfg.Address, l, cfg.ClientName, cfg.ClientVersion)
+	client, err := Dial(cfg.Address, l, clientName, clientVersion)
 	if err != nil {
 		client.Close()
 		return nil, nil, fmt.Errorf("udpapi NewAuthenticatedClient: %w", err)
