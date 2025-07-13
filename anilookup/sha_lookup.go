@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -11,20 +12,17 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	anihashURL string
-)
-
 func init() {
-	rootCmd.AddCommand(lookupCmd)
-	lookupCmd.Flags().StringVar(&anihashURL, "url", "https://anihash.sohamsen.me", "The URL of the anihash server")
+	rootCmd.AddCommand(shaLookupCmd)
+	shaLookupCmd.Flags().StringVar(&anihashURL, "url", "https://anihash.sohamsen.me", "The URL of the anihash server")
 }
 
-var lookupCmd = &cobra.Command{
-	Use:   "lookup [file]",
-	Short: "Lookup a file from anihash",
+var shaLookupCmd = &cobra.Command{
+	Use:   "sha-lookup [file]",
+	Short: "Lookup a file from anihash using SHA1",
 	Long: `
-Lookup a file from anihash. This will first generate an ED2K hash, then query anihash for the file.
+Lookup a file from anihash using SHA1. This will first generate a SHA1 hash, then query anihash for the file.
+This is faster than ED2K hashing, but will only work if the file is present in the anihash database.
 `,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -42,10 +40,10 @@ Lookup a file from anihash. This will first generate an ED2K hash, then query an
 			os.Exit(1)
 		}
 
-		ed2kHash := hashED2K(fileBytes)
-		ed2kHashStr := hex.EncodeToString(ed2kHash)
+		sha1Hash := sha1.Sum(fileBytes)
+		sha1HashStr := hex.EncodeToString(sha1Hash[:])
 
-		resp, err := http.Get(fmt.Sprintf("%s/query/ed2k?size=%d&ed2k=%s", anihashURL, len(fileBytes), ed2kHashStr))
+		resp, err := http.Get(fmt.Sprintf("%s/query/hash?hash=%s", anihashURL, sha1HashStr))
 		if err != nil {
 			fmt.Printf("Error querying anihash: %v\n", err)
 			os.Exit(1)
