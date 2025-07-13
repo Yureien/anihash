@@ -45,7 +45,7 @@ Lookup a file from anihash. This will first generate an ED2K hash, then query an
 		ed2kHash := hashED2K(fileBytes)
 		ed2kHashStr := hex.EncodeToString(ed2kHash)
 
-		resp, err := http.Get(fmt.Sprintf("%s/query?size=%d&ed2k=%s", anihashURL, len(fileBytes), ed2kHashStr))
+		resp, err := http.Get(fmt.Sprintf("%s/query/ed2k?size=%d&ed2k=%s", anihashURL, len(fileBytes), ed2kHashStr))
 		if err != nil {
 			fmt.Printf("Error querying anihash: %v\n", err)
 			os.Exit(1)

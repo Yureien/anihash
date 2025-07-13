@@ -54,7 +54,8 @@ func (s server) ListenAndServe(logger *slog.Logger, cfg *ServerConfig) error {
 	listenAddress := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
 
 	mux := goji.NewMux()
-	mux.HandleFunc(pat.Get("/query"), s.queryHandler)
+	mux.HandleFunc(pat.Get("/query/ed2k"), s.queryHandler)
+	mux.HandleFunc(pat.Get("/query/hash"), s.hashQueryHandler)
 	mux.HandleFunc(pat.Get("/"), s.homePageHandler)
 
 	logger.Info("starting server", "address", listenAddress)

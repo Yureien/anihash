@@ -9,6 +9,7 @@ Anihash is a self-hosted server that acts as a proxy between your applications a
 - **Simple API:** A straightforward HTTP API to query for file information.
 - **Docker Support:** Ready to be deployed as a Docker container.
 - **CLI:** Includes a command-line tool for easy interaction (see `anilookup`).
+- **Automatic Scanning:** Anihash can scan directories for new video files and automatically process them.
 
 ## Installation
 
@@ -93,6 +94,10 @@ database:
   sqlite:
     path: /data/anihash.db # Recommended path for Docker
     # path: anihash.db # For local non-docker usage
+
+scanner:
+  # Path to scan for video files. Leave empty or remove to disable.
+  scan_path: /path/to/your/media
 ```
 
 ### Parameters
@@ -108,6 +113,8 @@ database:
     -   `port`: The port for the server to listen on.
 -   `database`:
     -   `sqlite.path`: The path to the SQLite database file.
+-   `scanner` (optional):
+    -   `scan_path`: The path to a directory to scan for video files. If this is set, anihash will scan the directory on startup and watch for new files to automatically process them.
 
 ## Usage
 
@@ -125,21 +132,21 @@ docker start anihash
 
 ### API
 
-Anihash provides a simple HTTP API to query for file information.
+Anihash provides a simple HTTP API to query for file information. You can also access an interactive API documentation with forms by navigating to the root URL of the server (e.g., `http://localhost:8080`).
 
-#### `GET /query`
+#### `GET /query/ed2k`
 
-This endpoint retrieves file information from the database or queues a request to AniDB if the file is not yet known.
+This endpoint allows you to query file information using the file's size and ed2k hash. This is the canonical way to query file information, and will fetch from AniDB if the file is not in the database.
 
 **Query Parameters:**
 
--   `ed2k` (string, required): The ed2k hash of the file.
 -   `size` (integer, required): The size of the file in bytes.
+-   `ed2k` (string, required): The ed2k hash of the file.
 
 **Example Request:**
 
 ```sh
-curl "http://localhost:8080/query?ed2k=0123456789abcdef0123456789abcdef&size=123456789"
+curl "http://localhost:8080/query/ed2k?size=12345678&ed2k=abcdef1234567890abcdef1234567890"
 ```
 
 **Example Response (File Available):**
@@ -148,8 +155,8 @@ If the file is found in the cache, the server returns the file data.
 {
   "file": {
     "FileID": 12345,
-    "Ed2k": "0123456789abcdef0123456789abcdef",
-    "Size": 123456789,
+    "Ed2k": "abcdef1234567890abcdef1234567890",
+    "Size": 12345678,
     // ... other fields
   },
   "state": {
@@ -168,6 +175,58 @@ If the file is not in the cache, the server queues a request to AniDB and return
   }
 }
 ```
+
+#### `GET /query/hash`
+
+This endpoint allows you to query file information using the file's SHA1 or MD5 hash. This endpoint will only search the local database, and will not fetch from AniDB.
+
+**Query Parameters:**
+
+-   `hash` (string, required): The SHA1 or MD5 hash of the file.
+
+**Example Request:**
+
+```sh
+curl "http://localhost:8080/query/hash?hash=8c88c204d48243952f1b8949f4c042079f0da2e5"
+```
+
+**Example Response (File Found):**
+If the file is found in the local database, the server returns the file data.
+```json
+{
+  "file": {
+    "FileID": 54321,
+    "Ed2k": "f0e9d8c7b6a54321f0e9d8c7b6a54321",
+    "Size": 987654321,
+    // ... other fields
+  },
+  "state": {
+    "State": "FILE_AVAILABLE"
+  }
+}
+```
+
+**Example Response (File Not Found):**
+If the file is not found in the local database, the server returns a "not found" state.
+```json
+{
+  "file": null,
+  "state": {
+    "State": "FILE_NOT_FOUND"
+  }
+}
+```
+
+## File Scanner
+
+Anihash can optionally scan a directory on your filesystem to find video files, hash them, and add them to the local database. This is useful for pre-populating the cache with your entire media library.
+
+### How it works
+
+1.  **Initial Scan:** When the server starts, it walks through the entire `scan_path` directory and processes any video files it finds.
+2.  **Watching for Changes:** After the initial scan, it uses a file watcher to monitor the directory for any new or modified files, processing them as they appear. This means you can add new files to your library and anihash will automatically pick them up without a restart.
+
+To enable this feature, add the `scanner` section to your `config.yaml` and provide a `scan_path`.
 
 ### CLI Tool (`anilookup`)
 

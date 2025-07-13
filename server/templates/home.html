@@ -14,7 +14,7 @@
             padding: 2rem;
             background-color: #f9f9f9;
         }
-        h1, h2 {
+        h1, h2, h3 {
             color: #222;
         }
         code {
@@ -50,15 +50,49 @@
         th {
             background-color: #f2f2f2;
         }
+        input[type="text"] {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 0.5rem;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 1rem;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            border: 1px solid #dee2e6;
+        }
+        label {
+            display: block;
+            margin-bottom: 0.25rem;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
     <h1>anihash API Documentation</h1>
     <div class="endpoint">
-        <h2>Query File Information</h2>
+        <h2>Query File Information by ED2K and Size</h2>
         <p>This endpoint allows you to query file information using the file's size and ed2k hash.</p>
+        <p>This is the canonical way to query file information, and will fetch from AniDB if the file is not in the database.</p>
         <p>
-            <span class="method">GET</span> <span class="path">/query</span>
+            <span class="method">GET</span> <span class="path">/query/ed2k</span>
         </p>
         
         <h3>Query Parameters</h3>
@@ -86,10 +120,108 @@
 
         <h3>Example Usage</h3>
         <p>Here is an example of how to use the endpoint with <code>curl</code>:</p>
-        <code>curl "http://localhost:8080/query?size=12345678&ed2k=abcdef1234567890abcdef1234567890"</code>
+        <code>curl "http://{{.Host}}/query/ed2k?size=12345678&ed2k=abcdef1234567890abcdef1234567890"</code>
 
         <h3>Response</h3>
         <p>The server will respond with a JSON object containing file details and its current state. If the file information is not yet cached, it will be added to a queue to be fetched from an external service (AniDB).</p>
+
+        <h3>Try it out</h3>
+        <form id="ed2k-form">
+            <div>
+                <label for="size">Size:</label>
+                <input type="text" id="size" name="size" placeholder="e.g., 12345678" required>
+            </div>
+            <div>
+                <label for="ed2k">ED2K Hash:</label>
+                <input type="text" id="ed2k" name="ed2k" placeholder="e.g., abcdef1234567890abcdef1234567890" required>
+            </div>
+            <button type="submit">Query</button>
+        </form>
+        <h4>Result:</h4>
+        <pre><code id="ed2k-result"></code></pre>
     </div>
+    <div class="endpoint">
+        <h2>Query File Information by Hash</h2>
+        <p>This endpoint allows you to query file information using the file's SHA1 or MD5 hash.</p>
+        <p>This endpoint will only search the local database, and will not fetch from AniDB.</p>
+        <p>
+            <span class="method">GET</span> <span class="path">/query/hash</span>
+        </p>
+        
+        <h3>Query Parameters</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Parameter</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>hash</code></td>
+                    <td>String</td>
+                    <td>The SHA1 or MD5 hash of the file.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Example Usage</h3>
+        <p>Here is an example of how to use the endpoint with <code>curl</code>:</p>
+        <code>curl "http://{{.Host}}/query/hash?hash=8c88c204d48243952f1b8949f4c042079f0da2e5"</code>
+
+        <h3>Response</h3>
+        <p>The server will respond with a JSON object containing file details and its current state. This endpoint only searches the local database. If the file is not found, it will return a "not found" state.</p>
+    
+        <h3>Try it out</h3>
+        <form id="hash-form">
+            <div>
+                <label for="hash">Hash (SHA1/MD5):</label>
+                <input type="text" id="hash" name="hash" placeholder="e.g., 8c88c204d48243952f1b8949f4c042079f0da2e5" required>
+            </div>
+            <button type="submit">Query</button>
+        </form>
+        <h4>Result:</h4>
+        <pre><code id="hash-result"></code></pre>
+    </div>
+
+    <script>
+        document.getElementById('ed2k-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const size = document.getElementById('size').value;
+            const ed2k = document.getElementById('ed2k').value;
+            const resultElement = document.getElementById('ed2k-result');
+            
+            resultElement.textContent = 'Loading...';
+
+            fetch(`/query/ed2k?size=${encodeURIComponent(size)}&ed2k=${encodeURIComponent(ed2k)}`)
+                .then(response => response.json())
+                .then(data => {
+                    resultElement.textContent = JSON.stringify(data, null, 2);
+                })
+                .catch(error => {
+                    console.error('Error fetching ed2k:', error);
+                    resultElement.textContent = `Error: ${error}. Check the console for more details.`;
+                });
+        });
+
+        document.getElementById('hash-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const hash = document.getElementById('hash').value;
+            const resultElement = document.getElementById('hash-result');
+
+            resultElement.textContent = 'Loading...';
+
+            fetch(`/query/hash?hash=${encodeURIComponent(hash)}`)
+                .then(response => response.json())
+                .then(data => {
+                    resultElement.textContent = JSON.stringify(data, null, 2);
+                })
+                .catch(error => {
+                    console.error('Error fetching hash:', error);
+                    resultElement.textContent = `Error: ${error}. Check the console for more details.`;
+                });
+        });
+    </script>
 </body>
 </html> 

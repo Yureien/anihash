@@ -5,6 +5,7 @@ import (
 
 	"github.com/yureien/anihash/anidb"
 	"github.com/yureien/anihash/database"
+	"github.com/yureien/anihash/scanner"
 	"github.com/yureien/anihash/server"
 	"gopkg.in/yaml.v3"
 )
@@ -13,6 +14,7 @@ type Config struct {
 	Anidb    anidb.AniDBConfig       `yaml:"anidb"`
 	Server   server.ServerConfig     `yaml:"server"`
 	Database database.DatabaseConfig `yaml:"database"`
+	Scanner  scanner.ScannerConfig   `yaml:"scanner"`
 }
 
 func LoadConfig(path string) (Config, error) {

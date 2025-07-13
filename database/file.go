@@ -42,6 +42,14 @@ func QueryFileByED2KSize(db *gorm.DB, ed2k string, size int) (AniDBFile, error) 
 	return file, nil
 }
 
+func QueryFileByHash(db *gorm.DB, hash string) (AniDBFile, error) {
+	var file AniDBFile
+	if err := db.Where("sha1 = ?", hash).Or("md5 = ?", hash).First(&file).Error; err != nil {
+		return AniDBFile{}, err
+	}
+	return file, nil
+}
+
 func CreateFile(db *gorm.DB, file AniDBFile) (uint, error) {
 	if err := db.Create(&file).Error; err != nil {
 		return 0, err

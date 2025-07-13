@@ -47,14 +47,14 @@ func (s server) queryHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if err == gorm.ErrRecordNotFound {
-			s.anidbQueryChan <- request
-
 			fileState, err = database.CreatePendingFileState(s.db, request.Ed2K, request.Size)
 			if err != nil {
 				slog.Error("failed to create pending file state", "error", err)
 				s.errorResponse(w, http.StatusInternalServerError, "failed to create pending file state")
 				return
 			}
+
+			s.anidbQueryChan <- request
 
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(map[string]any{

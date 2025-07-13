@@ -6,6 +6,7 @@ import (
 
 	"github.com/yureien/anihash/anidb"
 	"github.com/yureien/anihash/database"
+	"github.com/yureien/anihash/scanner"
 	"github.com/yureien/anihash/server"
 )
 
@@ -36,6 +37,8 @@ func main() {
 		logger.Error("failed to create server", "error", err)
 		return
 	}
+
+	scanner.StartScanner(logger, cfg.Scanner, anidbClient, db)
 
 	if err := server.ListenAndServe(logger, &cfg.Server); err != nil {
 		logger.Error("failed to start server", "error", err)

@@ -1,7 +1,10 @@
 # ---- Build Stage ----
-FROM golang:1.22-alpine AS builder
+FROM golang:1.24-bookworm AS builder
 
 WORKDIR /app
+
+# Install build-essential for CGO
+RUN apt-get update && apt-get install -y build-essential
 
 COPY go.mod go.sum ./
 RUN go mod download
@@ -9,12 +12,11 @@ RUN go mod download
 COPY . .
 
 # Build the application, creating a static binary.
-# CGO_ENABLED=0 is used to build a statically linked binary.
 # -ldflags="-w -s" strips debug information, reducing the binary size.
-RUN CGO_ENABLED=0 go build -ldflags="-w -s" -o /anihash .
+RUN go build -ldflags="-w -s" -o /anihash .
 
 # ---- Runtime Stage ----
-FROM alpine:latest
+FROM debian:bookworm-slim
 
 WORKDIR /app
 
