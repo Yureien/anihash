@@ -1,6 +1,8 @@
 # Anihash
 
-Anihash is a self-hosted server that acts as a proxy between your applications and [AniDB](https://anidb.net/). It is designed to query AniDB for file information using ed2k hashes and file sizes. It caches this information in a local database to reduce redundant queries, respect AniDB's API rate limits, and provide a fast, local source for your media file data.
+Public instance: https://anihash.sohamsen.me
+
+Anihash acts as a proxy between your applications and [AniDB](https://anidb.net/). It is designed to query AniDB for file information using ed2k hashes and file sizes. It caches this information in a local database to reduce redundant queries, respect AniDB's API rate limits, and provide a fast, local source for your media file data.
 
 ## Features
 
