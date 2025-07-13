@@ -96,6 +96,7 @@ database:
 scanner:
   # Path to scan for video files. Leave empty or remove to disable.
   scan_path: /path/to/your/media
+  num_workers: 4
 ```
 
 ### Parameters
@@ -111,6 +112,7 @@ scanner:
     -   `sqlite.path`: The path to the SQLite database file.
 -   `scanner` (optional):
     -   `scan_path`: The path to a directory to scan for video files. If this is set, anihash will scan the directory on startup and watch for new files to automatically process them.
+    -   `num_workers`: The number of workers to use for the scanner. If not set, the number of workers will be equal to the number of CPU cores.
 
 ## Usage
 

@@ -7,7 +7,9 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
+	"sync"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/yureien/anihash/anidb"
@@ -35,6 +37,9 @@ type scanner struct {
 	cfg         ScannerConfig
 	anidbClient *anidb.Client
 	db          *gorm.DB
+
+	processChan chan string
+	wg          sync.WaitGroup
 }
 
 func StartScanner(logger *slog.Logger, cfg ScannerConfig, anidbClient *anidb.Client, db *gorm.DB) {
@@ -48,11 +53,22 @@ func StartScanner(logger *slog.Logger, cfg ScannerConfig, anidbClient *anidb.Cli
 		cfg:         cfg,
 		anidbClient: anidbClient,
 		db:          db,
+		processChan: make(chan string),
 	}
 	go scanner.start()
 }
 
 func (s *scanner) start() {
+	numWorkers := s.cfg.NumWorkers
+	if numWorkers <= 0 {
+		numWorkers = runtime.GOMAXPROCS(0)
+	}
+
+	s.wg.Add(numWorkers)
+	for i := 0; i < numWorkers; i++ {
+		go s.startProcessor()
+	}
+
 	s.logger.Info("starting initial scan", "path", s.cfg.ScanPath)
 	err := filepath.Walk(s.cfg.ScanPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -61,7 +77,7 @@ func (s *scanner) start() {
 		if info.IsDir() {
 			return nil
 		}
-		s.processFile(path)
+		s.processChan <- path
 		return nil
 	})
 	if err != nil {
@@ -115,7 +131,7 @@ func (s *scanner) startWatcher() {
 						}
 					}
 					if !info.IsDir() {
-						s.processFile(event.Name)
+						s.processChan <- event.Name
 					}
 				}
 			case err, ok := <-watcher.Errors:
@@ -145,6 +161,13 @@ func (s *scanner) startWatcher() {
 	<-make(chan struct{})
 }
 
+func (s *scanner) startProcessor() {
+	defer s.wg.Done()
+	for path := range s.processChan {
+		s.processFile(path)
+	}
+}
+
 func (s *scanner) processFile(path string) {
 	ext := strings.ToLower(filepath.Ext(path))
 	if _, ok := videoExtensions[ext]; !ok {
@@ -170,14 +193,11 @@ func (s *scanner) processFile(path string) {
 	}
 	defer file.Close()
 
-	data, err := io.ReadAll(file)
-	if err != nil {
-		s.logger.Error("failed to read file", "path", path, "error", err)
+	hasher := ed2k.New()
+	if _, err := io.Copy(hasher, file); err != nil {
+		s.logger.Error("failed to hash file", "path", path, "error", err)
 		return
 	}
-
-	hasher := ed2k.New()
-	hasher.Write(data)
 	ed2kHash := hex.EncodeToString(hasher.Sum(nil))
 	size := info.Size()
 
